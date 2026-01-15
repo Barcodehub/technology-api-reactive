@@ -1,8 +1,7 @@
 CREATE TABLE IF NOT EXISTS technologies (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
-    description VARCHAR(90) NOT NULL,
-    capacity_id BIGINT NOT NULL
+    description VARCHAR(90) NOT NULL
 );
 
 

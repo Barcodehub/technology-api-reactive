@@ -9,5 +9,4 @@ public class TechnologyDTO {
     private Long id;
     private String name;
     private String description;
-    private Long capacityId;
 }

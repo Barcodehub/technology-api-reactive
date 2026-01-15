@@ -15,4 +15,5 @@ public class RouterRest {
     public RouterFunction<ServerResponse> routerFunction(TechnologyHandlerImpl technologyHandler) {
         return route(POST("/technology"), technologyHandler::createTechnology);
     }
+
 }
