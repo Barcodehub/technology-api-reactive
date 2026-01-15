@@ -5,6 +5,7 @@ import com.example.resilient_api.domain.enums.TechnicalMessage;
 import com.example.resilient_api.domain.exceptions.BusinessException;
 import com.example.resilient_api.domain.exceptions.TechnicalException;
 import com.example.resilient_api.infrastructure.entrypoints.dto.TechnologyDTO;
+import com.example.resilient_api.infrastructure.entrypoints.dto.TechnologyIdsRequest;
 import com.example.resilient_api.infrastructure.entrypoints.mapper.TechnologyMapper;
 import com.example.resilient_api.infrastructure.entrypoints.util.APIResponse;
 import com.example.resilient_api.infrastructure.entrypoints.util.ErrorDTO;
@@ -34,43 +35,68 @@ public class TechnologyHandlerImpl {
     public Mono<ServerResponse> createTechnology(ServerRequest request) {
         String messageId = getMessageId(request);
         return request.bodyToMono(TechnologyDTO.class)
-                .flatMap(technology -> technologyServicePort.registerTechnology(technologyMapper.technologyDTOToTechnology(technology), messageId)
+                .flatMap(technology -> technologyServicePort.registerTechnology(
+                        technologyMapper.technologyDTOToTechnology(technology), messageId)
                         .doOnSuccess(savedTechnology -> log.info("Technology created successfully with messageId: {}", messageId))
                 )
-                .flatMap(savedTechnology -> ServerResponse
-                        .status(HttpStatus.CREATED)
+                .flatMap(savedTechnology -> ServerResponse.status(HttpStatus.CREATED)
                         .bodyValue(TechnicalMessage.TECHNOLOGY_CREATED.getMessage()))
                 .contextWrite(Context.of(X_MESSAGE_ID, messageId))
                 .doOnError(ex -> log.error(TECHNOLOGY_ERROR, ex))
-                .onErrorResume(BusinessException.class, ex -> buildErrorResponse(
-                        HttpStatus.BAD_REQUEST,
-                        messageId,
-                        TechnicalMessage.INVALID_PARAMETERS,
-                        List.of(ErrorDTO.builder()
-                                .code(ex.getTechnicalMessage().getCode())
-                                .message(ex.getTechnicalMessage().getMessage())
-                                .param(ex.getTechnicalMessage().getParam())
-                                .build())))
-                .onErrorResume(TechnicalException.class, ex -> buildErrorResponse(
-                        HttpStatus.INTERNAL_SERVER_ERROR,
-                        messageId,
-                        TechnicalMessage.INTERNAL_ERROR,
-                        List.of(ErrorDTO.builder()
-                                .code(ex.getTechnicalMessage().getCode())
-                                .message(ex.getTechnicalMessage().getMessage())
-                                .param(ex.getTechnicalMessage().getParam())
-                                .build())))
-                .onErrorResume(ex -> {
-                    log.error("Unexpected error occurred for messageId: {}", messageId, ex);
-                    return buildErrorResponse(
-                            HttpStatus.INTERNAL_SERVER_ERROR,
-                            messageId,
-                            TechnicalMessage.INTERNAL_ERROR,
-                            List.of(ErrorDTO.builder()
-                                    .code(TechnicalMessage.INTERNAL_ERROR.getCode())
-                                    .message(TechnicalMessage.INTERNAL_ERROR.getMessage())
-                                    .build()));
-                });
+                .onErrorResume(BusinessException.class, ex -> handleBusinessException(ex, messageId))
+                .onErrorResume(TechnicalException.class, ex -> handleTechnicalException(ex, messageId))
+                .onErrorResume(ex -> handleUnexpectedException(ex, messageId));
+    }
+
+    public Mono<ServerResponse> checkTechnologiesExist(ServerRequest request) {
+        String messageId = getMessageId(request);
+        return request.bodyToMono(TechnologyIdsRequest.class)
+                .flatMap(idsRequest -> {
+                    List<Long> ids = idsRequest.getIds() != null ? idsRequest.getIds() : List.of();
+                    return technologyServicePort.checkTechnologiesExist(ids, messageId)
+                            .doOnSuccess(result -> log.info("Technologies existence checked successfully with messageId: {}", messageId));
+                })
+                .flatMap(result -> ServerResponse.status(HttpStatus.OK).bodyValue(result))
+                .contextWrite(Context.of(X_MESSAGE_ID, messageId))
+                .doOnError(ex -> log.error("Error checking technologies existence for messageId: {}", messageId, ex))
+                .onErrorResume(TechnicalException.class, ex -> handleTechnicalException(ex, messageId))
+                .onErrorResume(ex -> handleUnexpectedException(ex, messageId));
+    }
+
+    private Mono<ServerResponse> handleBusinessException(BusinessException ex, String messageId) {
+        return buildErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                messageId,
+                TechnicalMessage.INVALID_PARAMETERS,
+                List.of(buildErrorDTO(ex.getTechnicalMessage())));
+    }
+
+    private Mono<ServerResponse> handleTechnicalException(TechnicalException ex, String messageId) {
+        return buildErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                messageId,
+                TechnicalMessage.INTERNAL_ERROR,
+                List.of(buildErrorDTO(ex.getTechnicalMessage())));
+    }
+
+    private Mono<ServerResponse> handleUnexpectedException(Throwable ex, String messageId) {
+        log.error("Unexpected error occurred for messageId: {}", messageId, ex);
+        return buildErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                messageId,
+                TechnicalMessage.INTERNAL_ERROR,
+                List.of(ErrorDTO.builder()
+                        .code(TechnicalMessage.INTERNAL_ERROR.getCode())
+                        .message(TechnicalMessage.INTERNAL_ERROR.getMessage())
+                        .build()));
+    }
+
+    private ErrorDTO buildErrorDTO(TechnicalMessage technicalMessage) {
+        return ErrorDTO.builder()
+                .code(technicalMessage.getCode())
+                .message(technicalMessage.getMessage())
+                .param(technicalMessage.getParam())
+                .build();
     }
 
     private Mono<ServerResponse> buildErrorResponse(HttpStatus httpStatus, String identifier, TechnicalMessage error,

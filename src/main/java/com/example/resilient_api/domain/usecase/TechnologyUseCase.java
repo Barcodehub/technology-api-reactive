@@ -7,6 +7,10 @@ import com.example.resilient_api.domain.api.TechnologyServicePort;
 import com.example.resilient_api.domain.spi.TechnologyPersistencePort;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 public class TechnologyUseCase implements TechnologyServicePort {
 
     private static final int MAX_NAME_LENGTH = 50;
@@ -27,6 +31,22 @@ public class TechnologyUseCase implements TechnologyServicePort {
                 .flatMap(exists -> technologyPersistencePort.save(technology));
     }
 
+    @Override
+    public Mono<Map<Long, Boolean>> checkTechnologiesExist(List<Long> ids, String messageId) {
+        if (ids == null || ids.isEmpty()) {
+            return Mono.just(Map.of());
+        }
+
+        return technologyPersistencePort.findExistingIdsByIds(ids)
+                .collect(Collectors.toSet())
+                .map(existingIds -> ids.stream()
+                        .collect(Collectors.toMap(
+                                id -> id,
+                                existingIds::contains
+                        ))
+                );
+    }
+
     private Mono<Void> validateTechnology(Technology technology) {
         if (technology.name() == null || technology.name().trim().isEmpty()) {
             return Mono.error(new BusinessException(TechnicalMessage.TECHNOLOGY_NAME_REQUIRED));
@@ -43,4 +63,5 @@ public class TechnologyUseCase implements TechnologyServicePort {
         return Mono.empty();
     }
 }
+
 

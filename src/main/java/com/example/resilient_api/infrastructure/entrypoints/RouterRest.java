@@ -13,7 +13,8 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.r
 public class RouterRest {
     @Bean
     public RouterFunction<ServerResponse> routerFunction(TechnologyHandlerImpl technologyHandler) {
-        return route(POST("/technology"), technologyHandler::createTechnology);
+        return route(POST("/technology"), technologyHandler::createTechnology)
+            .andRoute(POST("/technology/check-exists"), technologyHandler::checkTechnologiesExist);
     }
 
 }
