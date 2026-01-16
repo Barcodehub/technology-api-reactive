@@ -63,6 +63,26 @@ public class TechnologyHandlerImpl {
                 .onErrorResume(ex -> handleUnexpectedException(ex, messageId));
     }
 
+    public Mono<ServerResponse> getTechnologiesByIds(ServerRequest request) {
+        String messageId = getMessageId(request);
+        return request.bodyToMono(TechnologyIdsRequest.class)
+                .flatMapMany(idsRequest -> {
+                    List<Long> ids = idsRequest.getIds() != null ? idsRequest.getIds() : List.of();
+                    return technologyServicePort.getTechnologiesByIds(ids, messageId)
+                            .map(technology -> TechnologyDTO.builder()
+                                    .id(technology.id())
+                                    .name(technology.name())
+                                    .build())
+                            .doOnComplete(() -> log.info("Technologies retrieved successfully with messageId: {}", messageId));
+                })
+                .collectList()
+                .flatMap(technologies -> ServerResponse.status(HttpStatus.OK).bodyValue(technologies))
+                .contextWrite(Context.of(X_MESSAGE_ID, messageId))
+                .doOnError(ex -> log.error("Error getting technologies by ids for messageId: {}", messageId, ex))
+                .onErrorResume(TechnicalException.class, ex -> handleTechnicalException(ex, messageId))
+                .onErrorResume(ex -> handleUnexpectedException(ex, messageId));
+    }
+
     private Mono<ServerResponse> handleBusinessException(BusinessException ex, String messageId) {
         return buildErrorResponse(
                 HttpStatus.BAD_REQUEST,

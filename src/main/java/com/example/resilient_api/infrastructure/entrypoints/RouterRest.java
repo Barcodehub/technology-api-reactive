@@ -14,7 +14,8 @@ public class RouterRest {
     @Bean
     public RouterFunction<ServerResponse> routerFunction(TechnologyHandlerImpl technologyHandler) {
         return route(POST("/technology"), technologyHandler::createTechnology)
-            .andRoute(POST("/technology/check-exists"), technologyHandler::checkTechnologiesExist);
+            .andRoute(POST("/technology/check-exists"), technologyHandler::checkTechnologiesExist)
+            .andRoute(POST("/technology/by-ids"), technologyHandler::getTechnologiesByIds);
     }
 
 }

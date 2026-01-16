@@ -35,6 +35,12 @@ public class TechnologyPersistenceAdapter implements TechnologyPersistencePort {
         return technologyRepository.findAllByIdIn(ids)
                 .map(TechnologyEntity::getId);
     }
+
+    @Override
+    public Flux<Technology> findAllByIdIn(List<Long> ids) {
+        return technologyRepository.findAllByIdIn(ids)
+                .map(technologyEntityMapper::toModel);
+    }
 }
 
 

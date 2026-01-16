@@ -5,6 +5,7 @@ import com.example.resilient_api.domain.exceptions.BusinessException;
 import com.example.resilient_api.domain.model.Technology;
 import com.example.resilient_api.domain.api.TechnologyServicePort;
 import com.example.resilient_api.domain.spi.TechnologyPersistencePort;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -45,6 +46,15 @@ public class TechnologyUseCase implements TechnologyServicePort {
                                 existingIds::contains
                         ))
                 );
+    }
+
+    @Override
+    public Flux<Technology> getTechnologiesByIds(List<Long> ids, String messageId) {
+        if (ids == null || ids.isEmpty()) {
+            return Flux.empty();
+        }
+
+        return technologyPersistencePort.findAllByIdIn(ids);
     }
 
     private Mono<Void> validateTechnology(Technology technology) {
