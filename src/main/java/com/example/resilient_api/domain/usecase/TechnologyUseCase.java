@@ -57,6 +57,19 @@ public class TechnologyUseCase implements TechnologyServicePort {
         return technologyPersistencePort.findAllByIdIn(ids);
     }
 
+    @Override
+    public Mono<Void> decrementTechnologyReferences(List<Long> technologyIds, String messageId) {
+        if (technologyIds == null || technologyIds.isEmpty()) {
+            return Mono.empty();
+        }
+
+        // Technology-API simplemente elimina las tecnologías que capacity-api le indica
+        // porque capacity-api ya verificó que no tienen más referencias
+        return Flux.fromIterable(technologyIds)
+                .flatMap(technologyPersistencePort::deleteById)
+                .then();
+    }
+
     private Mono<Void> validateTechnology(Technology technology) {
         if (technology.name() == null || technology.name().trim().isEmpty()) {
             return Mono.error(new BusinessException(TechnicalMessage.TECHNOLOGY_NAME_REQUIRED));

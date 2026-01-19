@@ -15,7 +15,8 @@ public class RouterRest {
     public RouterFunction<ServerResponse> routerFunction(TechnologyHandlerImpl technologyHandler) {
         return route(POST("/technology"), technologyHandler::createTechnology)
             .andRoute(POST("/technology/check-exists"), technologyHandler::checkTechnologiesExist)
-            .andRoute(POST("/technology/by-ids"), technologyHandler::getTechnologiesByIds);
+            .andRoute(POST("/technology/by-ids"), technologyHandler::getTechnologiesByIds)
+            .andRoute(POST("/technology/decrement-references"), technologyHandler::decrementTechnologyReferences);
     }
 
 }

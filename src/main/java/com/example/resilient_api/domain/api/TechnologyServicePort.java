@@ -11,4 +11,5 @@ public interface TechnologyServicePort {
     Mono<Technology> registerTechnology(Technology technology, String messageId);
     Mono<Map<Long, Boolean>> checkTechnologiesExist(List<Long> ids, String messageId);
     Flux<Technology> getTechnologiesByIds(List<Long> ids, String messageId);
+    Mono<Void> decrementTechnologyReferences(List<Long> technologyIds, String messageId);
 }

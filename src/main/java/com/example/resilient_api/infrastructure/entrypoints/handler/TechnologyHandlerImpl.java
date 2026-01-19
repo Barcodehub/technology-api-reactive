@@ -83,6 +83,21 @@ public class TechnologyHandlerImpl {
                 .onErrorResume(ex -> handleUnexpectedException(ex, messageId));
     }
 
+    public Mono<ServerResponse> decrementTechnologyReferences(ServerRequest request) {
+        String messageId = getMessageId(request);
+        return request.bodyToMono(TechnologyIdsRequest.class)
+                .flatMap(idsRequest -> {
+                    List<Long> ids = idsRequest.getIds() != null ? idsRequest.getIds() : List.of();
+                    return technologyServicePort.decrementTechnologyReferences(ids, messageId)
+                            .doOnSuccess(v -> log.info("Technology references decremented successfully with messageId: {}", messageId));
+                })
+                .flatMap(v -> ServerResponse.ok().bodyValue("References decremented successfully"))
+                .contextWrite(Context.of(X_MESSAGE_ID, messageId))
+                .doOnError(ex -> log.error("Error decrementing technology references for messageId: {}", messageId, ex))
+                .onErrorResume(TechnicalException.class, ex -> handleTechnicalException(ex, messageId))
+                .onErrorResume(ex -> handleUnexpectedException(ex, messageId));
+    }
+
     private Mono<ServerResponse> handleBusinessException(BusinessException ex, String messageId) {
         return buildErrorResponse(
                 HttpStatus.BAD_REQUEST,
