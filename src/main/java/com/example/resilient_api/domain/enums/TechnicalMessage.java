@@ -16,7 +16,9 @@ public enum TechnicalMessage {
     TECHNOLOGY_NAME_REQUIRED("400", "Technology name is required", "name"),
     TECHNOLOGY_DESCRIPTION_REQUIRED("400", "Technology description is required", "description"),
     TECHNOLOGY_NAME_TOO_LONG("400", "Technology name cannot exceed 50 characters", "name"),
-    TECHNOLOGY_DESCRIPTION_TOO_LONG("400", "Technology description cannot exceed 90 characters", "description")
+    TECHNOLOGY_DESCRIPTION_TOO_LONG("400", "Technology description cannot exceed 90 characters", "description"),
+    TOKEN_EXPIRED("401", "JWT token has expired", "token"),
+    TOKEN_INVALID("401", "JWT token is invalid", "token")
     ;
 
     private final String code;
